@@ -1,8 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Bamboo Build Notifier",
+  "name": "Bamboo Job End Notifier",
   "version": "1.0",
-  "description": "Audible notifications when Bamboo CI/CD builds and deploys complete.",
+    "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "description": "Audible chime when a Bamboo CI/CD build or deploy completes.",
 "content_scripts": [
     {
       "matches": ["*://*/*"],
