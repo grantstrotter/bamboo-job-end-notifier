@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Bamboo Build Notifier",
+  "version": "1.0",
+  "description": "Audible notifications when Bamboo CI/CD builds and deploys complete.",
+"content_scripts": [
+    {
+      "matches": ["*://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
