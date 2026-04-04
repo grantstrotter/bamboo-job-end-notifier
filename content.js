@@ -1,9 +1,7 @@
+(function () {
 // Chrome's match pattern syntax cannot express "bamboo anywhere in URL",
 // so we match all http/https and bail early if bamboo isn't in the URL.
-if (!window.location.href.includes('bamboo')) {
-    // Not a Bamboo page — do nothing.
-    throw new Error('bamboo-notifier: not a Bamboo page, skipping');
-}
+if (!window.location.href.includes('bamboo')) { return; }
 
 let chimeEnabled = false;
 let observer = null;
@@ -233,3 +231,4 @@ function init() {
 }
 
 init();
+})();
