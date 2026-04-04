@@ -11,7 +11,6 @@ let uiElement = null;
 let audioCtx = null;
 
 function note(frequency) {
-    console.log(`playing a note: ${frequency}`);
     if (!audioCtx || audioCtx.state === 'closed') return;
 
     const osc = audioCtx.createOscillator();
@@ -47,8 +46,8 @@ function triggerAlert() {
 function positionUI(anchor) {
     if (!uiElement || !anchor) return;
     const rect = anchor.getBoundingClientRect();
-    uiElement.style.top = (rect.top - 12) + 'px';
-    uiElement.style.left = rect.left + 'px';
+    uiElement.style.top = (rect.top + 18) + 'px';
+    uiElement.style.left = (rect.left + 4) + 'px';
 }
 
 function createUI(anchor) {
@@ -115,12 +114,15 @@ function stopObserver() {
     }
 }
 
-function setupObserver(statusElement) {
-    stopObserver();
+// --- Build flow ---
+// The .status-ribbon-status.InProgress element is stable for the duration of
+// the build. Alert as soon as it loses InProgress or is removed.
+
+function initBuild(statusElement) {
+    setTimeout(() => createUI(statusElement, document.body), 250);
 
     observer = new MutationObserver(mutations => {
         for (const mutation of mutations) {
-            // Class change on the status element itself
             if (
                 mutation.type === 'attributes' &&
                 mutation.attributeName === 'class' &&
@@ -134,7 +136,6 @@ function setupObserver(statusElement) {
                 }
             }
 
-            // Status element (or an ancestor containing it) was removed from the DOM
             if (mutation.type === 'childList') {
                 for (const node of mutation.removedNodes) {
                     if (node === statusElement || node.contains(statusElement)) {
@@ -153,30 +154,82 @@ function setupObserver(statusElement) {
         attributeFilter: ['class'],
     });
 
-    // Watch the full subtree above the status element so we catch removals at
-    // any level between the element and the document root.
     observer.observe(document.body, {
         childList: true,
         subtree: true,
     });
+
+    window.addEventListener('beforeunload', () => {
+        if (observer) triggerAlert();
+    });
 }
+
+// --- Deploy flow ---
+// The .status-ribbon-status.InProgress element is unstable — it may disappear
+// and reappear as the deploy progresses through steps. Alert only when it
+// disappears and no new one appears within a short window.
+
+function initDeploy(headerExtra) {
+    setTimeout(() => createUI(headerExtra), 250);
+
+    let pendingAlert = null;
+
+    function scheduleAlert() {
+        if (pendingAlert) return;
+        pendingAlert = setTimeout(() => {
+            pendingAlert = null;
+            if (!document.querySelector('.status-ribbon-status.InProgress')) {
+                triggerAlert();
+                stopObserver();
+                removeUI();
+            }
+        }, 50);
+    }
+
+    function cancelAlert() {
+        if (pendingAlert) {
+            clearTimeout(pendingAlert);
+            pendingAlert = null;
+        }
+    }
+
+    observer = new MutationObserver(() => {
+        if (document.querySelector('.status-ribbon-status.InProgress')) {
+            cancelAlert();
+        } else {
+            scheduleAlert();
+        }
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class'],
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (observer) triggerAlert();
+    });
+}
+
+// --- Entry point ---
 
 function init() {
     const statusElement = document.querySelector(
-        '#status-ribbon .status-ribbon-status.InProgress'
+        '.status-ribbon-status.InProgress'
     );
 
     if (!statusElement) return;
 
-    createUI(statusElement);
-    setupObserver(statusElement);
-
-    window.addEventListener('beforeunload', () => {
-        // Only alert if we're still actively monitoring an in-progress build/deploy.
-        if (observer) {
-            triggerAlert();
-        }
-    });
+    const headerExtra = document.querySelector('.bamboo-page-header-extra');
+    if (headerExtra) {
+        console.log('deploy detected');
+        initDeploy(headerExtra);
+    } else {
+        console.log('build detected');
+        initBuild(statusElement);
+    }
 }
 
 init();
