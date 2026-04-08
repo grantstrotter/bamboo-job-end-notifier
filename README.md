@@ -4,7 +4,7 @@ A Chrome extension that plays an audible chime when a Bamboo CI/CD build or depl
 
 ## Installation
 
-This should be avilable in the Chrome Web Store soon. A link will be included here when it's available.
+Install through the [Chrome Web Store](https://chromewebstore.google.com/detail/bamboo-job-end-notifier/mkihbhlcknfbacpemllbhjelmeclijkj).
 
 This extension currently supports Chromium-based browsers (Chrome, Brave, Edge). Firefox and Safari are not supported.
 
