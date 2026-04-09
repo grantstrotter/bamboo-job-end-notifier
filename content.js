@@ -1,59 +1,70 @@
 (function () {
-// Chrome's match pattern syntax cannot express "bamboo anywhere in URL",
-// so we match all http/https and bail early if bamboo isn't in the URL.
-if (!window.location.href.includes('bamboo')) { return; }
+    // Chrome's match pattern syntax cannot express "bamboo anywhere in URL",
+    // so we match all http/https and bail early if bamboo isn't in the URL.
+    if (!window.location.href.includes('bamboo')) { return; }
 
-let chimeEnabled = false;
-let observer = null;
-let uiElement = null;
-let audioCtx = null;
+    let chimeEnabled = false;
+    let observer = null;
+    let uiElement = null;
+    let audioCtx = null;
 
-function note(frequency) {
-    if (!audioCtx || audioCtx.state === 'closed') return;
+    function note(frequency) {
+        if (!audioCtx || audioCtx.state === 'closed') return;
 
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
 
-    osc.frequency.value = frequency;
+        osc.frequency.value = frequency;
 
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
 
-    const now = audioCtx.currentTime;
+        const now = audioCtx.currentTime;
 
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.3, now + 0.05); // attack
-    gain.gain.linearRampToValueAtTime(0, now + 0.49); // release
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.3, now + 0.05); // attack
+        gain.gain.linearRampToValueAtTime(0, now + 0.49); // release
 
-    osc.start(now);
-    osc.stop(now + 0.5);
-}
-
-function chord() {
-    note(500);
-    note(600);
-    note(800);
-}
-
-function triggerAlert() {
-    if (chimeEnabled) {
-        chord();
+        osc.start(now);
+        osc.stop(now + 0.5);
     }
-}
 
-function positionUI(anchor) {
-    if (!uiElement || !anchor) return;
-    const rect = anchor.getBoundingClientRect();
-    uiElement.style.top = (rect.top + 18) + 'px';
-    uiElement.style.left = (rect.left + 4) + 'px';
-}
+    function chord() {
+        note(500);
+        note(600);
+        note(800);
+    }
 
-function createUI(anchor) {
-    if (uiElement) return;
+    function sendChromeNotification() {
+        chrome.runtime.sendMessage({
+            type: 'SHOW_NOTIFICATION',
+            payload: {
+                title: 'Bamboo Job Ended',
+                message: 'Click here to return to it'
+            }
+        });
+    }
 
-    uiElement = document.createElement('div');
-    uiElement.id = 'bamboo-chime-ui';
-    uiElement.style.cssText = `
+    function triggerAlert() {
+        if (chimeEnabled) {
+            chord();
+        }
+        sendChromeNotification();
+    }
+
+    function positionUI(anchor) {
+        if (!uiElement || !anchor) return;
+        const rect = anchor.getBoundingClientRect();
+        uiElement.style.top = (rect.top + 18) + 'px';
+        uiElement.style.left = (rect.left + 4) + 'px';
+    }
+
+    function createUI(anchor) {
+        if (uiElement) return;
+
+        uiElement = document.createElement('div');
+        uiElement.id = 'bamboo-chime-ui';
+        uiElement.style.cssText = `
         position: fixed;
         z-index: 2147483647;
         background: rgba(0, 0, 0, 0.72);
@@ -68,8 +79,8 @@ function createUI(anchor) {
         pointer-events: auto;
     `;
 
-    const label = document.createElement('label');
-    label.style.cssText = `
+        const label = document.createElement('label');
+        label.style.cssText = `
         display: flex;
         align-items: center;
         gap: 5px;
@@ -77,158 +88,156 @@ function createUI(anchor) {
         user-select: none;
     `;
 
-    const text = document.createTextNode('Chime: ');
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = false;
-    checkbox.style.cssText = 'cursor: pointer;';
+        const text = document.createTextNode('Chime: ');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = false;
+        checkbox.style.cssText = 'cursor: pointer;';
 
-    checkbox.addEventListener('change', () => {
-        chimeEnabled = checkbox.checked;
-        if (chimeEnabled && (!audioCtx || audioCtx.state === 'closed')) {
-            audioCtx = new (window.AudioContext || /** @type {any} */ (window).webkitAudioContext)();
-        }
-    });
-
-    label.appendChild(text);
-    label.appendChild(checkbox);
-    uiElement.appendChild(label);
-    document.body.appendChild(uiElement);
-
-    positionUI(anchor);
-}
-
-function removeUI() {
-    if (uiElement) {
-        uiElement.remove();
-        uiElement = null;
-    }
-}
-
-function stopObserver() {
-    if (observer) {
-        observer.disconnect();
-        observer = null;
-    }
-}
-
-// --- Build flow ---
-// The .status-ribbon-status.InProgress element is stable for the duration of
-// the build. Alert as soon as it loses InProgress or is removed.
-
-function initBuild(statusElement) {
-    setTimeout(() => createUI(statusElement, document.body), 250);
-
-    observer = new MutationObserver(mutations => {
-        for (const mutation of mutations) {
-            if (
-                mutation.type === 'attributes' &&
-                mutation.attributeName === 'class' &&
-                mutation.target === statusElement
-            ) {
-                if (!statusElement.classList.contains('InProgress')) {
-                    triggerAlert();
-                    stopObserver();
-                    removeUI();
-                    return;
-                }
+        checkbox.addEventListener('change', () => {
+            chimeEnabled = checkbox.checked;
+            if (chimeEnabled && (!audioCtx || audioCtx.state === 'closed')) {
+                audioCtx = new (window.AudioContext || /** @type {any} */ (window).webkitAudioContext)();
             }
+        });
 
-            if (mutation.type === 'childList') {
-                for (const node of mutation.removedNodes) {
-                    if (node === statusElement || node.contains(statusElement)) {
+        label.appendChild(text);
+        label.appendChild(checkbox);
+        uiElement.appendChild(label);
+        document.body.appendChild(uiElement);
+
+        positionUI(anchor);
+    }
+
+    function removeUI() {
+        if (uiElement) {
+            uiElement.remove();
+            uiElement = null;
+        }
+    }
+
+    function stopObserver() {
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
+    }
+
+    // --- Build flow ---
+    // The .status-ribbon-status.InProgress element is stable for the duration of
+    // the build. Alert as soon as it loses InProgress or is removed.
+
+    function initBuild(statusElement) {
+        setTimeout(() => createUI(statusElement, document.body), 250);
+
+        observer = new MutationObserver(mutations => {
+            for (const mutation of mutations) {
+                if (
+                    mutation.type === 'attributes' &&
+                    mutation.attributeName === 'class' &&
+                    mutation.target === statusElement
+                ) {
+                    if (!statusElement.classList.contains('InProgress')) {
                         triggerAlert();
                         stopObserver();
                         removeUI();
                         return;
                     }
                 }
+
+                if (mutation.type === 'childList') {
+                    for (const node of mutation.removedNodes) {
+                        if (node === statusElement || node.contains(statusElement)) {
+                            triggerAlert();
+                            stopObserver();
+                            removeUI();
+                            return;
+                        }
+                    }
+                }
             }
-        }
-    });
+        });
 
-    observer.observe(statusElement, {
-        attributes: true,
-        attributeFilter: ['class'],
-    });
+        observer.observe(statusElement, {
+            attributes: true,
+            attributeFilter: ['class'],
+        });
 
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-    });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
 
-    window.addEventListener('beforeunload', () => {
-        if (observer) triggerAlert();
-    });
-}
-
-// --- Deploy flow ---
-// The .status-ribbon-status.InProgress element is unstable — it may disappear
-// and reappear as the deploy progresses through steps. Alert only when it
-// disappears and no new one appears within a short window.
-
-function initDeploy(headerExtra) {
-    setTimeout(() => createUI(headerExtra), 250);
-
-    let pendingAlert = null;
-
-    function scheduleAlert() {
-        if (pendingAlert) return;
-        pendingAlert = setTimeout(() => {
-            pendingAlert = null;
-            if (!document.querySelector('.status-ribbon-status.InProgress')) {
-                triggerAlert();
-                stopObserver();
-                removeUI();
-            }
-        }, 50);
+        window.addEventListener('beforeunload', () => {
+            if (observer) triggerAlert();
+        });
     }
 
-    function cancelAlert() {
-        if (pendingAlert) {
-            clearTimeout(pendingAlert);
-            pendingAlert = null;
+    // --- Deploy flow ---
+    // The .status-ribbon-status.InProgress element is unstable — it may disappear
+    // and reappear as the deploy progresses through steps. Alert only when it
+    // disappears and no new one appears within a short window.
+
+    function initDeploy(headerExtra) {
+        setTimeout(() => createUI(headerExtra), 250);
+
+        let pendingAlert = null;
+
+        function scheduleAlert() {
+            if (pendingAlert) return;
+            pendingAlert = setTimeout(() => {
+                pendingAlert = null;
+                if (!document.querySelector('.status-ribbon-status.InProgress')) {
+                    triggerAlert();
+                    stopObserver();
+                    removeUI();
+                }
+            }, 50);
         }
+
+        function cancelAlert() {
+            if (pendingAlert) {
+                clearTimeout(pendingAlert);
+                pendingAlert = null;
+            }
+        }
+
+        observer = new MutationObserver(() => {
+            if (document.querySelector('.status-ribbon-status.InProgress')) {
+                cancelAlert();
+            } else {
+                scheduleAlert();
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class'],
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (observer) triggerAlert();
+        });
     }
 
-    observer = new MutationObserver(() => {
-        if (document.querySelector('.status-ribbon-status.InProgress')) {
-            cancelAlert();
+    // --- Entry point ---
+
+    function init() {
+        const statusElement = document.querySelector(
+            '.status-ribbon-status.InProgress'
+        );
+
+        if (!statusElement) return;
+
+        const headerExtra = document.querySelector('.bamboo-page-header-extra');
+        if (headerExtra) {
+            initDeploy(headerExtra);
         } else {
-            scheduleAlert();
+            initBuild(statusElement);
         }
-    });
-
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class'],
-    });
-
-    window.addEventListener('beforeunload', () => {
-        if (observer) triggerAlert();
-    });
-}
-
-// --- Entry point ---
-
-function init() {
-    const statusElement = document.querySelector(
-        '.status-ribbon-status.InProgress'
-    );
-
-    if (!statusElement) return;
-
-    const headerExtra = document.querySelector('.bamboo-page-header-extra');
-    if (headerExtra) {
-        console.log('deploy detected');
-        initDeploy(headerExtra);
-    } else {
-        console.log('build detected');
-        initBuild(statusElement);
     }
-}
 
-init();
+    init();
 })();
