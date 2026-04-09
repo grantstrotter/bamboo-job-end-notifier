@@ -26,8 +26,8 @@
     function triggerAlert() {
         if (alertEnabled) {
             runtimeSend({ type: 'PLAY_ALERT' });
+            sendChromeNotification();
         }
-        sendChromeNotification();
     }
 
     function positionUI(anchor) {
