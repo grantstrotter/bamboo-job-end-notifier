@@ -1,5 +1,3 @@
-const notificationTabs = {};
-
 async function ensureOffscreenDocument() {
     if (await chrome.offscreen.hasDocument()) return;
     await chrome.offscreen.createDocument({
@@ -18,7 +16,9 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
             message: msg.payload.message
         }, (id) => {
             if (sender.tab) {
-                notificationTabs[id] = { tabId: sender.tab.id, windowId: sender.tab.windowId };
+                chrome.storage.session.set({
+                    [id]: { tabId: sender.tab.id, windowId: sender.tab.windowId }
+                });
             }
         });
     }
@@ -31,11 +31,13 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
 });
 
 chrome.notifications.onClicked.addListener((notificationId) => {
-    const info = notificationTabs[notificationId];
-    if (info) {
-        chrome.windows.update(info.windowId, { focused: true });
-        chrome.tabs.update(info.tabId, { active: true });
-        delete notificationTabs[notificationId];
-    }
+    chrome.storage.session.get(notificationId, (result) => {
+        const info = result[notificationId];
+        if (info) {
+            chrome.windows.update(info.windowId, { focused: true });
+            chrome.tabs.update(info.tabId, { active: true });
+            chrome.storage.session.remove(notificationId);
+        }
+    });
     chrome.notifications.clear(notificationId);
 });
