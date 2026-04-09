@@ -7,7 +7,7 @@
         "48": "icon48.png",
         "128": "icon128.png"
     },
-    "description": "Audible alert when a Bamboo CI/CD build or deploy completes.",
+    "description": "Audible notification when a Bamboo CI/CD build or deploy completes.",
     "content_scripts": [
         {
             "matches": [
