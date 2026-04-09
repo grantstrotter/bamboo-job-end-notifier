@@ -6,37 +6,15 @@
     let chimeEnabled = false;
     let observer = null;
     let uiElement = null;
-    let audioCtx = null;
 
-    function note(frequency) {
-        if (!audioCtx || audioCtx.state === 'closed') return;
-
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.frequency.value = frequency;
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        const now = audioCtx.currentTime;
-
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.3, now + 0.05); // attack
-        gain.gain.linearRampToValueAtTime(0, now + 0.49); // release
-
-        osc.start(now);
-        osc.stop(now + 0.5);
-    }
-
-    function chord() {
-        note(500);
-        note(600);
-        note(800);
+    function runtimeSend(msg) {
+        if (chrome.runtime) {
+            chrome.runtime.sendMessage(msg);
+        }
     }
 
     function sendChromeNotification() {
-        chrome.runtime.sendMessage({
+        runtimeSend({
             type: 'SHOW_NOTIFICATION',
             payload: {
                 title: 'Bamboo Job Ended',
@@ -47,7 +25,7 @@
 
     function triggerAlert() {
         if (chimeEnabled) {
-            chord();
+            runtimeSend({ type: 'PLAY_CHIME' });
         }
         sendChromeNotification();
     }
@@ -55,7 +33,7 @@
     function positionUI(anchor) {
         if (!uiElement || !anchor) return;
         const rect = anchor.getBoundingClientRect();
-        uiElement.style.top = (rect.top + 18) + 'px';
+        uiElement.style.top = (rect.top + 19) + 'px';
         uiElement.style.left = (rect.left + 4) + 'px';
     }
 
@@ -96,9 +74,6 @@
 
         checkbox.addEventListener('change', () => {
             chimeEnabled = checkbox.checked;
-            if (chimeEnabled && (!audioCtx || audioCtx.state === 'closed')) {
-                audioCtx = new (window.AudioContext || /** @type {any} */ (window).webkitAudioContext)();
-            }
         });
 
         label.appendChild(text);

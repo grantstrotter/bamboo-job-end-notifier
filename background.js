@@ -1,5 +1,14 @@
 const notificationTabs = {};
 
+async function ensureOffscreenDocument() {
+    if (await chrome.offscreen.hasDocument()) return;
+    await chrome.offscreen.createDocument({
+        url: 'offscreen.html',
+        reasons: ['AUDIO_PLAYBACK'],
+        justification: 'Play chime when a Bamboo job ends'
+    });
+}
+
 chrome.runtime.onMessage.addListener((msg, sender) => {
     if (msg.type === 'SHOW_NOTIFICATION') {
         chrome.notifications.create({
@@ -11,6 +20,12 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
             if (sender.tab) {
                 notificationTabs[id] = { tabId: sender.tab.id, windowId: sender.tab.windowId };
             }
+        });
+    }
+
+    if (msg.type === 'PLAY_CHIME') {
+        ensureOffscreenDocument().then(() => {
+            chrome.runtime.sendMessage({ type: 'PLAY_CHIME' });
         });
     }
 });
