@@ -5,7 +5,7 @@ async function ensureOffscreenDocument() {
     await chrome.offscreen.createDocument({
         url: 'offscreen.html',
         reasons: ['AUDIO_PLAYBACK'],
-        justification: 'Play chime when a Bamboo job ends'
+        justification: 'Play alert sound when a Bamboo job ends'
     });
 }
 
@@ -23,9 +23,9 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
         });
     }
 
-    if (msg.type === 'PLAY_CHIME') {
+    if (msg.type === 'PLAY_ALERT') {
         ensureOffscreenDocument().then(() => {
-            chrome.runtime.sendMessage({ type: 'PLAY_CHIME' });
+            chrome.runtime.sendMessage({ type: 'PLAY_ALERT' });
         });
     }
 });

@@ -3,7 +3,7 @@
     // so we match all http/https and bail early if bamboo isn't in the URL.
     if (!window.location.href.includes('bamboo')) { return; }
 
-    let chimeEnabled = false;
+    let alertEnabled = false;
     let observer = null;
     let uiElement = null;
 
@@ -24,8 +24,8 @@
     }
 
     function triggerAlert() {
-        if (chimeEnabled) {
-            runtimeSend({ type: 'PLAY_CHIME' });
+        if (alertEnabled) {
+            runtimeSend({ type: 'PLAY_ALERT' });
         }
         sendChromeNotification();
     }
@@ -41,7 +41,7 @@
         if (uiElement) return;
 
         uiElement = document.createElement('div');
-        uiElement.id = 'bamboo-chime-ui';
+        uiElement.id = 'bamboo-alert-ui';
         uiElement.style.cssText = `
         position: fixed;
         z-index: 2147483647;
@@ -66,14 +66,20 @@
         user-select: none;
     `;
 
-        const text = document.createTextNode('Chime: ');
+        const text = document.createTextNode('Notify: ');
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = false;
         checkbox.style.cssText = 'cursor: pointer;';
 
+        chrome.storage.sync.get('alertEnabled', ({ alertEnabled: stored }) => {
+            alertEnabled = !!stored;
+            checkbox.checked = alertEnabled;
+        });
+
         checkbox.addEventListener('change', () => {
-            chimeEnabled = checkbox.checked;
+            alertEnabled = checkbox.checked;
+            chrome.storage.sync.set({ alertEnabled });
         });
 
         label.appendChild(text);

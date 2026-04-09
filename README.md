@@ -1,6 +1,6 @@
 # Bamboo Job End Notifier (Chrome Extension)
 
-A Chrome extension that triggers an OS notification and plays an audible chime when a Bamboo CI/CD build or deploy completes.
+A Chrome extension that triggers an OS notification and plays an audible alert when a Bamboo CI/CD build or deploy completes.
 
 ## Installation
 
@@ -18,11 +18,11 @@ System Settings → Google Chrome (or other browser if preferred)
 
 ## Usage
 
-Navigate to any Bamboo build or deploy result page. While the job is in progress, a small Chime toggle will appear in the top-left corner of the status ribbon.
+Navigate to any Bamboo build or deploy result page. While the job is in progress, a small Alert toggle will appear in the top-left corner of the status ribbon.
 
-The chime is off by default. Check the box to enable it before the job completes. When the job finishes, the chime will play.
+The alert is off by default. Check the box to enable it before the job completes. When the job finishes, the alert will play.
 
-The setting is not persisted across page loads. You'll need to check the box each time.
+The setting is persisted across page loads.
 
 ## How it works
 

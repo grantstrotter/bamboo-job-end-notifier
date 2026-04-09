@@ -27,7 +27,7 @@ function chord() {
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === 'PLAY_CHIME') {
+    if (msg.type === 'PLAY_ALERT') {
         chord();
     }
 });
