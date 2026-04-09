@@ -6,6 +6,7 @@
     let alertEnabled = false;
     let observer = null;
     let uiElement = null;
+    let userNavigated = false;
 
     function runtimeSend(msg) {
         if (chrome.runtime) {
@@ -150,7 +151,7 @@
         });
 
         window.addEventListener('beforeunload', () => {
-            if (observer) triggerAlert();
+            if (observer && !userNavigated) triggerAlert();
         });
     }
 
@@ -199,7 +200,7 @@
         });
 
         window.addEventListener('beforeunload', () => {
-            if (observer) triggerAlert();
+            if (observer && !userNavigated) triggerAlert();
         });
     }
 
@@ -211,6 +212,11 @@
         );
 
         if (!statusElement) return;
+
+        window.navigation.addEventListener('navigate', (e) => {
+            console.log('navigated detected. User initiated?', e.userInitiated);
+            if (e.userInitiated) userNavigated = true;
+        });
 
         const headerExtra = document.querySelector('.bamboo-page-header-extra');
         if (headerExtra) {
