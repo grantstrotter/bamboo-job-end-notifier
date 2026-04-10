@@ -1,10 +1,18 @@
+let creatingOffscreenDocument = null;
+
 async function ensureOffscreenDocument() {
     if (await chrome.offscreen.hasDocument()) return;
-    await chrome.offscreen.createDocument({
+    if (creatingOffscreenDocument) {
+        await creatingOffscreenDocument;
+        return;
+    }
+    creatingOffscreenDocument = chrome.offscreen.createDocument({
         url: 'offscreen.html',
         reasons: ['AUDIO_PLAYBACK'],
         justification: 'Play alert sound when a Bamboo job ends'
     });
+    await creatingOffscreenDocument;
+    creatingOffscreenDocument = null;
 }
 
 chrome.runtime.onMessage.addListener((msg, sender) => {
